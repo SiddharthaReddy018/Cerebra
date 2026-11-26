@@ -1,1 +1,2 @@
 2026-11-26T13:28:42  fix: fix edge-case handling
+2026-11-26T14:04:42  fix: fix exception propagation
