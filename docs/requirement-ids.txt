@@ -1,0 +1,138 @@
+# Canonical requirement IDs from SRS v1.0. Format: ID<TAB>first line of the requirement text.
+# Used by scripts/traceability.py (CI) to prove every requirement has a test or a documented inspection.
+BR-1	Only the authorised owner of the YouTube account may cause data to be read from or written to that
+BR-2	A playlist is created only on the user’s explicit confirmation; an AI client may not confirm on the
+BR-3	Recommendations and analyses use only likes, subscriptions and playlists; claims about watch history
+BR-4	Ranking shall rely on objective metadata, not on engagement popularity signals such as view counts,
+BR-5	The daily quota is a shared, limited resource; workflows that cannot fit are refused instead of partially
+BR-6	Every team member authors brain notes and commits visibly; every change is reviewed by at least one
+CON-1	Official API only. Only the YouTube Data API v3 may be used. Scraping and unofficial APIs
+CON-2	Quota. A new Google Cloud project has 10,000 units per day. The team shall use caching and
+CON-3	OAuth in Testing mode. Refresh tokens expire after 7 days; the design shall support re-
+CON-4	Channel required. A Google account without a YouTube channel cannot create playlists (error
+CON-5	No watch history, no related endpoints. The API provides neither watch history nor related-
+CON-6	Provider interface. All YouTube access goes through a provider interface (SE-6).
+CON-7	Process. Every change is merged through a pull request with at least one human review; CI shall
+CON-8	MCP and Agent Skills formats. The server shall follow the MCP specification; skills shall
+CON-9	Implementation language. The server, tests and tooling shall be implemented in Python.
+FR-1.1	The system shall accept a video reference (watch, short or youtu.be URL, or an 11-
+FR-1.2	The system shall reject malformed references with INVALID_VIDEO_ID or
+FR-1.3	The system shall retrieve the seed’s metadata: for a video its title, description, tags,
+FR-1.4	The system shall build a candidate set from official API calls (for example search
+FR-1.5	The system shall compute a similarity score for each candidate using TF-IDF
+FR-1.6	The system shall return candidates in descending score order, excluding the seed,
+FR-1.7	The system shall return at most N results, where N is a request parameter with a
+FR-1.8	The system shall compute a score even when tags are missing, using the remaining
+FR-1.9	The system shall give identical output for identical input and identical provider
+FR-2.1	The system shall require a valid user authorisation (FR-5.1 to FR-5.5) and shall
+FR-2.2	The system shall build the user’s interest profile only from liked videos,
+FR-2.3	The system shall rank candidate videos by similarity to the profile using the
+FR-2.4	The system shall exclude videos already liked or already contained in the user’s
+FR-2.5	The system shall attach to each recommendation a short reason (for example
+FR-2.6	The system shall return an explanatory empty result, not an error, when the user
+FR-2.7	The system shall support an optional topic filter and a maximum video duration
+FR-3.1	The system shall require a valid user authorisation (FR-5.1 to FR-5.5).
+FR-3.2	The system shall report the top K channels (default 5) by number of liked videos,
+FR-3.3	The system shall report the top K video categories by count.
+FR-3.4	The system shall report trends over time as counts per month (or week) of liked
+FR-3.5	The system shall report duration preferences: mean, median and distribution across
+FR-3.6	The system shall compare two user-specified periods and report differences in top
+FR-3.7	The system shall state in every report that results are based on likes, subscriptions
+FR-3.8	The system shall return a result with empty sections and an explanation when data
+FR-4.1	The system shall extract from the request the topic, total duration, maximum video
+FR-4.2	The system shall select videos from official API results that satisfy the language
+FR-4.3	The system shall choose and order videos so that the total duration does not exceed
+FR-4.4	The system shall present the proposed playlist (title, each video with channel and
+FR-4.5	The system shall store the proposal under a unique proposal ID and shall not call
+FR-4.6	The system shall create the playlist only after receiving an explicit confirmation
+FR-4.7	The system shall reject confirmation of an unknown, expired (default 15 minutes,
+FR-4.8	The system shall record in a local audit log each creation (time, proposal ID,
+FR-4.9	The system shall create the playlist as private by default and shall allow the user to
+FR-4.10	The system shall treat all video titles, descriptions and tags as untrusted data and
+FR-4.11	The system shall check the quota cost of the whole workflow before the first API
+FR-4.12	The system shall handle the error youtubeSignupRequired by returning
+FR-4.13	The system shall make creation recoverable: if creating the playlist succeeds but
+FR-5.1	The system shall request only the minimum OAuth scopes: a read-only scope for
+FR-5.2	The system shall store tokens outside the repository, protected by operating-system
+FR-5.3	The system shall refresh access tokens automatically before they expire.
+FR-5.4	The system shall detect an expired or revoked refresh token, return AUTH_EXPIRED
+FR-5.5	The system shall provide a way to revoke and delete stored credentials.
+FR-5.6	The system shall maintain a cost table per API method (for example search.list,
+FR-5.7	The system shall record the quota cost of every request and the cumulative daily
+FR-5.8	The system shall reject any workflow whose estimated cost exceeds the remaining
+FR-5.9	The system shall cache video, channel and search responses with a configurable
+FR-5.10	The system shall map the API error quotaExceeded to QUOTA_EXHAUSTED, shall
+FR-5.11	The system shall allow the daily budget to be configured below 10,000 units for
+FR-5.12	The system shall register the tools find_similar_videos,
+FR-5.13	The system shall expose at least the resources quota_status (current quota usage)
+FR-5.14	The system shall validate every tool parameter (type, length, format, range) before
+FR-5.15	The system shall return errors in a uniform structure (code, message, retryable flag,
+FR-5.16	The system shall mark create_playlist as a write operation in its description so
+FR-5.17	The system shall access YouTube only through the VideoProvider interface (SE-
+NFR-CO-1	The system shall use only the official YouTube Data API v3; scraping and
+NFR-CO-2	The team shall not create additional Google Cloud projects to obtain more quota.
+NFR-DO-1	User documentation and developer API documentation shall be provided and kept
+NFR-MA-1	External dependencies shall be isolated behind the VideoProvider interface so that the YouTube implementation can be replaced by a fixture implementation.
+NFR-MA-2	Python code shall pass the project linter and formatter in CI; modules shall have single responsibilities.
+NFR-MA-3	Significant design decisions shall be recorded as ADRs in docs/adr/, each citing at least one brain note.
+NFR-PF-1	Local processing (parsing, scoring, ranking) of up to 200 candidates shall complete
+NFR-PF-2	A cached request (FR-1 to FR-3) shall respond within 1 second.
+NFR-PF-3	An uncached FR-1 request should complete within 10 seconds under normal
+NFR-PF-4	Proposal generation for FR-4 should complete within 20 seconds for up to 50
+NFR-PF-5	The server shall use bounded memory: caches shall have a configurable size limit.
+NFR-PO-1	The server shall run on Linux, macOS and Windows (including WSL) with
+NFR-PV-1	Fixtures, logs and test data shall contain no real user data (account identifiers,
+NFR-PV-2	User data (likes, subscriptions, playlists) shall be processed locally and kept only in
+NFR-QU-1	The typical FR-1 request shall cost no more than 250 quota units, and a typical FR-
+NFR-RE-1	The system shall handle quotaExceeded, youtubeSignupRequired, expired
+NFR-RE-2	Transient errors (HTTP 5xx, rate limits) shall be retried at most 3 times with
+NFR-RE-3	The system shall degrade gracefully: if only part of the data is available (for
+NFR-SA-1	The system shall never create, modify or delete any content in the user’s YouTube
+NFR-SA-2	The system shall not implement deletion or editing of existing playlists, videos,
+NFR-SA-3	The system shall create playlists as private unless the user chooses otherwise (FR-
+NFR-SA-4	The system shall not exhaust the user’s daily quota silently; it shall warn when
+NFR-SE-1	OAuth scopes shall be the minimum needed (FR-5.1); the application shall not
+NFR-SE-2	No secret (API key, client secret, token) shall be stored in the repository, fixtures,
+NFR-SE-3	Tokens shall be stored with owner-only permissions or in an OS keystore.
+NFR-SE-4	All tool parameters shall be validated (type, length, charset, range); IDs shall be
+NFR-SE-5	Untrusted video and channel metadata shall never bypass the user-confirmation
+NFR-SE-6	Dependencies shall be pinned, and known-vulnerable dependencies shall be
+NFR-SE-7	If an HTTP transport is provided, it shall require authentication and TLS and shall
+NFR-TE-1	All CI tests shall run with pytest against recorded fixtures or mocks and shall not
+NFR-TE-2	Line coverage of core logic (similarity, duration parsing, playlist constraint logic,
+NFR-US-1	Tool descriptions and errors shall be understandable to a non-technical user when
+NFR-US-2	Result lists shall present durations in a human-readable form (for example 14:32)
+PR-1	The team shall produce and maintain this SRS containing FR, NFR and SK requirements.
+PR-2	The team shall produce architecture/design documentation with UML and ER diagrams.
+PR-3	The team shall produce a development plan and task breakdown, with GitHub Issues for all work.
+PR-4	The team shall maintain a traceability matrix: requirement, issue, PR, test, skill, brain note.
+PR-5	GitHub Actions shall run on every pull request: build, lint, automated tests,
+PR-6	Every change (code, skills, brain) shall be merged through a pull request with
+PR-7	External dependencies shall be isolated behind a provider interface.
+PR-8	User documentation and developer API documentation shall be produced.
+PR-9	The brain/ vault shall follow PARA (inbox, projects, areas, resources, archive), with requirement IDs.
+PR-10	Stage 1 shall deliver: this SRS, the Obsidian vault, at least 10 research notes
+PR-11	AI use shall follow the AI-Assisted Development Policy: a human reviews
+SK-1.1	Skill video-to-playlist shall run a complete workflow from one video: (1)
+SK-1.2	The skill shall stop after step 3 and shall perform step 4 only after explicit user
+SK-1.3	The skill shall treat video metadata as untrusted and shall not follow instructions
+SK-1.4	The step 5 analysis shall include at least total duration, number of videos, number
+SK-1.5	The skill shall report which step failed and why (for example quota, authorisation,
+SK-2.1	Skill local-check shall (1) build the project, (2) run the automated test suite, (3)
+SK-2.2	local-check shall use fixtures or a read-only call so that it cannot modify a
+SK-3.1	Skill brain-ingest shall add new material (article, document, meeting, AI
+SK-3.2	brain-ingest shall summarise in the team’s own words, record the source, and
+SK-4.1	Skill brain-refine shall move notes from the inbox into the PARA folders,
+SK-5.1	Skill brain-query shall answer questions from the brain and draft documents
+SK-5.2	brain-query shall not modify notes except to log the run, and any resulting
+SK-6.1	Every SKILL.md shall have valid frontmatter whose name matches its folder
+SK-6.2	Skill evaluations shall run before each stage submission and their results shall be
+TR-1	Unit tests (pytest) for functions, modules, services and MCP tools, including
+TR-2	Integration tests for interaction between components, including the YouTube
+TR-3	System (end-to-end) tests for each of FR-1 to FR-5, driven through the MCP
+TR-4	Negative tests: invalid/malformed IDs, private/deleted videos, missing tags,
+TR-5	CI tests shall use recorded fixtures or mocks; live API tests run in a separate
+TR-6	A test shall show that a workflow exceeding the remaining quota is rejected before
+TR-7	Security tests: OAuth minimum scopes and safe storage; no secrets in the
+TR-8	Skill evaluations shall run before each stage submission, with results recorded in
+TR-9	Tests shall be maintained as the system changes; each significant defect shall get a
