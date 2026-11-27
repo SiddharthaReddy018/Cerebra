@@ -1,0 +1,45 @@
+name: live-api-readonly
+
+# Scheduled live API tests — READ-ONLY only (NFR-TE-1, TR-5)
+# Runs on a schedule with strict quota budget
+# NEVER writes to YouTube
+
+on:
+  schedule:
+    - cron: "0 2 * * 1"  # weekly Monday 02:00 UTC
+  workflow_dispatch:
+
+jobs:
+  live-readonly:
+    runs-on: ubuntu-latest
+    env:
+      PYTHONPATH: src
+      CEREBRA_QUOTA_BUDGET: "500"   # strict budget for CI
+      CEREBRA_SEARCH_BUDGET: "5"
+      # Secrets from GitHub Secrets — never hardcoded
+      GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+      GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+      CEREBRA_REFRESH_TOKEN: ${{ secrets.CEREBRA_REFRESH_TOKEN_READONLY }}
+
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - run: pip install -e ".[dev]"
+      - name: Run read-only live tests
+        run: |
+          pytest tests/integration -m "live_readonly" -v \
+            --tb=short \
+            --junitxml=live-results.xml \
+            -k "not write"
+      - name: Redact results (NFR-SE-2)
+        if: always()
+        run: python scripts/redact_results.py live-results.xml
+      - name: Upload redacted results
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: live-readonly-results
+          path: live-results.xml
+          if-no-files-found: ignore
