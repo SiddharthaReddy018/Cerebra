@@ -1,0 +1,122 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "cerebra"
+version = "0.1.0"
+description = "YouTube Video Intelligence MCP Server"
+requires-python = ">=3.11"
+readme = "README.md"
+license = { text = "BSD-3-Clause" }
+authors = [
+  { name = "SegmentationFault", email = "team@example.com" }
+]
+dependencies = [
+  "mcp>=1.9.0,<2",   # server uses the 1.x low-level Server decorators (ADR-A); mcp 2.x differs
+  "httpx>=0.27.0",
+  "google-auth>=2.29.0",
+  "google-auth-oauthlib>=1.2.0",
+  "google-api-python-client>=2.126.0",
+  "scikit-learn>=1.3.0",
+  "numpy>=1.26.0",
+  "pydantic>=2.7.0",
+  "keyring>=25.2.0",
+  "cryptography>=42.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.2.0",
+  "pytest-asyncio>=0.23.0",
+  "pytest-cov>=5.0.0",
+  "hypothesis>=6.100.0",
+  "respx>=0.21.0",
+  "ruff>=0.17,<0.18",
+  "mypy>=1.10.0",
+  "pip-audit>=2.7.0",
+  "types-requests>=2.31.0",
+]
+
+[project.scripts]
+cerebra = "cerebra.mcp_server:main"
+cerebra-cli = "cerebra.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/cerebra"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+markers = [
+  "unit: fast unit tests",
+  "property: Hypothesis property tests",
+  "contract: adapter contract tests",
+  "integration: integration tests with real SQLite",
+  "mcp_e2e: MCP end-to-end tests",
+  "security: security tests",
+  "concurrency: concurrency tests",
+  "performance: performance tests",
+  "live_readonly: REAL YouTube API, read-only (scheduled/manual workflow only)",
+  "live_write: REAL YouTube API, creates one private test playlist (manual workflow only)",
+]
+# Live suites never run by default or in PR CI (NFR-TE-1, TR-5); the live workflows pass an
+# explicit -m expression, which overrides this one.
+addopts = "-m 'not live_readonly and not live_write'"
+# CPython 3.12 GC-ordering: asyncio event-loop self-pipe sockets (ssock/csock) may be
+# collected after loop.__del__ runs, emitting ResourceWarning on the sockets and the loop.
+# This is a CPython internals issue, not a code bug. Suppress at the test-session level.
+filterwarnings = [
+  "ignore::ResourceWarning:asyncio",
+  "ignore:unclosed event loop:ResourceWarning",
+  "ignore:unclosed <socket.socket:ResourceWarning",
+  "ignore:unclosed event loop:pytest.PytestUnraisableExceptionWarning",
+  "ignore:unclosed <socket.socket:pytest.PytestUnraisableExceptionWarning",
+]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+src = ["src"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "UP", "S", "B", "A", "C4", "T20", "SIM", "RUF"]
+ignore = [
+  "S101", "S603", "S607",
+  "E501",    # line length is owned by `ruff format`; remaining hits are long message strings
+  "UP042",   # str+Enum kept on purpose: str() / JSON behaviour is part of the API (FR-5.15)
+  "RUF001", "RUF002", "RUF003",  # typographic dashes/quotes in docs are intentional
+]
+
+[tool.ruff.lint.per-file-ignores]
+"scripts/**" = ["T201"]  # CLI helpers report on stdout/stderr by design
+"tests/**" = [
+  "S105", "S106", "S107",  # fake tokens in test data (never real secrets, NFR-SE-2)
+  "S311", "T201", "N802", "N805", "RUF012", "RUF059", "B905", "SIM115",
+]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+files = ["src/cerebra"]
+mypy_path = "src"
+explicit_package_bases = true
+
+[[tool.mypy.overrides]]
+module = ["sklearn.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["googleapiclient.*", "google_auth_oauthlib.*", "google.auth.*", "google.oauth2.*"]
+ignore_missing_imports = true
+
+[tool.coverage.run]
+source = ["src/cerebra"]
+branch = true
+omit = ["*/mcp_server.py"]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = false
+fail_under = 80
