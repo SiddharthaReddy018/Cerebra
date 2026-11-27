@@ -1,0 +1,63 @@
+name: live-api-write
+
+# Manual-only live write test (ADR-A, FR-4, Phase 4 gate)
+# NEVER runs automatically — human must dispatch
+# Uses dedicated test account; creates ONE clearly named PRIVATE test playlist
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: "Type 'I-CONFIRM-WRITE-TO-TEST-ACCOUNT' to proceed"
+        required: true
+
+jobs:
+  gate-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify confirmation
+        run: |
+          if [ "${{ github.event.inputs.confirm }}" != "I-CONFIRM-WRITE-TO-TEST-ACCOUNT" ]; then
+            echo "ERROR: Confirmation string does not match. Aborting."
+            exit 1
+          fi
+
+  live-write:
+    needs: gate-check
+    runs-on: ubuntu-latest
+    env:
+      PYTHONPATH: src
+      CEREBRA_QUOTA_BUDGET: "2000"
+      CEREBRA_SEARCH_BUDGET: "10"
+      GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID_TEST }}
+      GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET_TEST }}
+      CEREBRA_REFRESH_TOKEN: ${{ secrets.CEREBRA_REFRESH_TOKEN_WRITE_TEST }}
+      # The token was granted the write scope; declare it so the OAuth manager knows (FR-5.1).
+      CEREBRA_REFRESH_TOKEN_SCOPES: "https://www.googleapis.com/auth/youtube.readonly https://www.googleapis.com/auth/youtube"
+      # The test re-checks the confirmation phrase itself (defence in depth).
+      CEREBRA_LIVE_WRITE_CONFIRM: ${{ github.event.inputs.confirm }}
+
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - run: pip install -e ".[dev]"
+      - name: Run write test (creates ONE private test playlist)
+        run: |
+          pytest tests/integration -m "live_write" -v \
+            --tb=short \
+            -k "test_create_private_test_playlist" \
+            --junitxml=write-results.xml
+      - name: Redact results (NFR-SE-2)
+        if: always()
+        run: python scripts/redact_results.py write-results.xml
+      - name: Upload redacted results
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: live-write-results
+          path: write-results.xml
+          if-no-files-found: ignore
+        # NOTE: NFR-SA-2 — NEVER deletes or edits existing content
+        # Test playlist name: "CEREBRA-CI-TEST-{run_id}" — clearly marked
